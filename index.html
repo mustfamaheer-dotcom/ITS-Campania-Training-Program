@@ -1120,24 +1120,60 @@ function renderExamDetailChart() {
   const exIds = new Set(filtered.exams.map(e => e.id));
   const data = state.exams.filter(e => exIds.has(e.id));
   const examKeys = state.examNames.filter(n => n);
-  const dataset = examKeys.map(k => {
+  const hasData = examKeys.map(k => data.some(e => e.scores[k] !== null && e.scores[k] !== undefined));
+  const dataset = examKeys.map((k, i) => {
     const vals = data.map(e => e.scores[k]).filter(v => v !== null && v !== undefined);
     if (!vals.length) return null;
     const sum = vals.reduce((a,b) => a+b, 0);
-    return { avg: sum / vals.length, min: Math.min(...vals), max: Math.max(...vals) };
+    return { avg: sum / vals.length, min: Math.min(...vals), max: Math.max(...vals), count: vals.length };
+  });
+  const labels = examKeys.map((k, i) => {
+    const d = dataset[i];
+    return d ? `${k.length > 10 ? k.slice(0, 10) : k}\n(n=${d.count})` : k.slice(0, 10);
   });
   const ctx = document.getElementById('examDetailChart').getContext('2d');
   state.charts.examDetail = new Chart(ctx, {
-    type: 'line',
+    type: 'bar',
     data: {
-      labels: examKeys.map(k => k.length > 12 ? k.slice(0,12) : k),
+      labels: examKeys.map(k => k.length > 10 ? k.slice(0, 10) + '..' : k),
       datasets: [
-        { label: 'Average', data: dataset.map(d => d ? d.avg : null), borderColor: '#4f46e5', backgroundColor: 'rgba(79,70,229,.08)', fill: true, tension: .4, pointRadius: 5, pointBackgroundColor: '#4f46e5', pointBorderColor: '#fff', pointBorderWidth: 2 },
-        { label: 'Max', data: dataset.map(d => d ? d.max : null), borderColor: '#10b981', borderDash: [5,5], tension: .4, pointRadius: 3, pointBackgroundColor: '#10b981' },
-        { label: 'Min', data: dataset.map(d => d ? d.min : null), borderColor: '#f43f5e', borderDash: [5,5], tension: .4, pointRadius: 3, pointBackgroundColor: '#f43f5e' },
+        {
+          label: 'Average',
+          data: dataset.map(d => d ? +(d.avg.toFixed(3)) : null),
+          backgroundColor: '#4f46e5',
+          borderRadius: 4,
+          order: 2,
+        },
+        {
+          label: 'Max',
+          data: dataset.map(d => d ? +(d.max.toFixed(3)) : null),
+          backgroundColor: '#10b981',
+          borderRadius: 4,
+          order: 1,
+        },
+        {
+          label: 'Min',
+          data: dataset.map(d => d ? +(d.min.toFixed(3)) : null),
+          backgroundColor: '#f43f5e',
+          borderRadius: 4,
+          order: 0,
+        },
       ]
     },
-    options: chartOpts({ scales: { y: { beginAtZero: true, max: 1.05, ticks: { callback: v => (v*100)+'%' } } } })
+    options: chartOpts({
+      scales: { y: { beginAtZero: true, max: 1.05, ticks: { callback: v => (v*100)+'%' } } },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            afterLabel: function(context) {
+              const i = context.dataIndex;
+              const d = dataset[i];
+              return d ? `Count: ${d.count}` : '';
+            }
+          }
+        }
+      }
+    })
   });
 }
 
@@ -1500,7 +1536,6 @@ document.getElementById('tabs').addEventListener('click', e => {
   tab.classList.add('active');
   document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
   document.getElementById('tab-' + tab.dataset.tab).style.display = 'block';
-  // Re-render charts for active tab to get proper sizing
   setTimeout(() => {
     Object.values(state.charts).forEach(c => { try { c.resize(); } catch(e) {} });
   }, 100);
