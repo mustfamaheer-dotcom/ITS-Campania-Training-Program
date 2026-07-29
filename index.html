@@ -1120,16 +1120,11 @@ function renderExamDetailChart() {
   const exIds = new Set(filtered.exams.map(e => e.id));
   const data = state.exams.filter(e => exIds.has(e.id));
   const examKeys = state.examNames.filter(n => n);
-  const hasData = examKeys.map(k => data.some(e => e.scores[k] !== null && e.scores[k] !== undefined));
   const dataset = examKeys.map((k, i) => {
     const vals = data.map(e => e.scores[k]).filter(v => v !== null && v !== undefined);
     if (!vals.length) return null;
     const sum = vals.reduce((a,b) => a+b, 0);
     return { avg: sum / vals.length, min: Math.min(...vals), max: Math.max(...vals), count: vals.length };
-  });
-  const labels = examKeys.map((k, i) => {
-    const d = dataset[i];
-    return d ? `${k.length > 10 ? k.slice(0, 10) : k}\n(n=${d.count})` : k.slice(0, 10);
   });
   const ctx = document.getElementById('examDetailChart').getContext('2d');
   state.charts.examDetail = new Chart(ctx, {
@@ -1142,21 +1137,18 @@ function renderExamDetailChart() {
           data: dataset.map(d => d ? +(d.avg.toFixed(3)) : null),
           backgroundColor: '#4f46e5',
           borderRadius: 4,
-          order: 2,
         },
         {
           label: 'Max',
           data: dataset.map(d => d ? +(d.max.toFixed(3)) : null),
           backgroundColor: '#10b981',
           borderRadius: 4,
-          order: 1,
         },
         {
           label: 'Min',
           data: dataset.map(d => d ? +(d.min.toFixed(3)) : null),
           backgroundColor: '#f43f5e',
           borderRadius: 4,
-          order: 0,
         },
       ]
     },
