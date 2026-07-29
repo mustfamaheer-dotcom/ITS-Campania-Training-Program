@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ITS Campania - Training Program Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #f4f5f7;
+  --bg2: #ffffff;
+  --bg3: #f9fafb;
+  --card: #ffffff;
+  --card-hover: #eef2ff;
+  --border: #e2e4e9;
+  --text: #0f172a;
+  --text2: #475569;
+  --text3: #64748b;
+  --primary: #4f46e5;
+  --primary-light: #818cf8;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #06b6d4;
+  --purple: #8b5cf6;
+  --pink: #ec4899;
+  --orange: #f97316;
+}
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #e2e8f0; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #3730a3 0%, #4f46e5 100%);
+  border-bottom: 1px solid #4338ca;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-left { display: flex; align-items: center; gap: 1rem; }
+.header-logo {
+  width: 40px; height: 40px;
+  background: rgba(255,255,255,.2);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1.2rem; color:#fff;
+}
+.header h1 { font-size: 1.3rem; font-weight: 700; color:#fff; }
+.header h1 span { color: #c7d2fe; }
+.header-subtitle { font-size: .8rem; color: #c7d2fe; }
+.header-controls { display: flex; align-items: center; gap: .75rem; }
+.upload-area {
+  position: relative;
+  overflow: hidden;
+}
+.upload-area input[type=file] {
+  position: absolute; left: 0; top: 0;
+  width: 100%; height: 100%;
+  opacity: 0; cursor: pointer;
+}
+.btn {
+  padding: .6rem 1.2rem;
+  border: none; border-radius: 8px;
+  font-family: inherit; font-size: .85rem; font-weight: 600;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: .5rem;
+  transition: all .2s;
+}
+.btn-primary { background: #4f46e5; color: #fff; }
+.btn-primary:hover { background: #4338ca; transform: translateY(-1px); }
+.btn-outline {
+  background: rgba(255,255,255,.15); color: #fff;
+  border: 1px solid rgba(255,255,255,.3);
+}
+.btn-outline:hover { background: rgba(255,255,255,.25); }
+.btn-sm { padding: .4rem .8rem; font-size: .8rem; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-danger { background: var(--danger); color: #fff; }
+.file-info {
+  font-size: .8rem; color: #fff;
+  padding: .4rem .8rem;
+  background: rgba(255,255,255,.15);
+  border-radius: 6px;
+  display: none; align-items: center; gap: .5rem;
+}
+.file-info.show { display: inline-flex; }
+
+/* Container */
+.container { max-width: 1600px; margin: 0 auto; padding: 1.5rem 2rem; }
+
+/* Summary Cards */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.summary-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.2rem 1.5rem;
+  transition: all .2s;
+  cursor: default;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.summary-card:hover { background: var(--card-hover); border-color: #4f46e5; transform: translateY(-2px); }
+.sc-label { font-size: .75rem; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; margin-bottom: .3rem; }
+.sc-value { font-size: 1.8rem; font-weight: 800; line-height: 1.2; }
+.sc-value.primary { color: var(--primary); }
+.sc-value.success { color: var(--success); }
+.sc-value.warning { color: var(--warning); }
+.sc-value.danger { color: var(--danger); }
+.sc-value.info { color: var(--info); }
+.sc-value.purple { color: var(--purple); }
+.sc-change { font-size: .75rem; margin-top: .2rem; }
+.sc-icon { float: right; font-size: 1.8rem; opacity: .3; }
+
+/* Filter Bar */
+.filter-bar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: center;
+}
+.filter-bar label { font-size: .75rem; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+.filter-bar select, .filter-bar input {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: .4rem .6rem;
+  font-family: inherit; font-size: .8rem;
+  min-width: 120px;
+  cursor: pointer;
+}
+.filter-bar select:focus, .filter-bar input:focus { outline: none; border-color: var(--primary); }
+.filter-count {
+  margin-left: auto;
+  font-size: .8rem; color: var(--text2);
+  background: #eef2ff;
+  padding: .3rem .8rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* Charts Grid */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+.chart-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.25rem 1.25rem .75rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.chart-card.full { grid-column: 1 / -1; }
+.chart-card.full .chart-body { min-height: 320px; height: 320px; }
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem; }
+.chart-title { font-size: .85rem; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+.chart-title span { color: var(--text3); font-weight: 400; }
+.chart-body { position: relative; min-height: 260px; height: 260px; }
+.chart-body canvas { width: 100% !important; height: 100% !important; }
+
+/* Tables */
+.table-wrapper {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.table-header {
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.table-header h3 { font-size: .95rem; }
+.table-scroll { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .82rem;
+}
+thead { background: #eef2ff; }
+th {
+  padding: .7rem .8rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text2);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+th:hover { color: var(--text); }
+th.sorted { color: #4f46e5; }
+td {
+  padding: .6rem .8rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tr:hover td { background: #eef2ff; }
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: .15rem .5rem;
+  border-radius: 20px;
+  font-size: .72rem;
+  font-weight: 600;
+}
+.badge-success { background: rgba(16,185,129,.12); color: #047857; }
+.badge-danger { background: rgba(239,68,68,.12); color: #b91c1c; }
+.badge-warning { background: rgba(245,158,11,.12); color: #92400e; }
+.badge-info { background: rgba(6,182,212,.12); color: #0e7490; }
+.badge-primary { background: rgba(79,70,229,.12); color: #4338ca; }
+.badge-purple { background: rgba(139,92,246,.12); color: #7c3aed; }
+.badge-gray { background: rgba(0,0,0,.06); color: #64748b; }
+
+/* Insights */
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+.insight-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.insight-card h3 { font-size: .9rem; margin-bottom: .8rem; display: flex; align-items: center; gap: .5rem; }
+.insight-list { list-style: none; }
+.insight-list li {
+  padding: .5rem 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .84rem;
+}
+.insight-list li:last-child { border-bottom: none; }
+.insight-rank { font-weight: 700; color: #4f46e5; }
+.insight-name { flex: 1; margin: 0 .5rem; }
+.insight-score { font-weight: 600; }
+.insight-score.good { color: var(--success); }
+.insight-score.bad { color: var(--danger); }
+
+/* Loading */
+.loading {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+.loading.show { display: flex; }
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid #e0e4e8;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin-bottom: 1rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading p { color: var(--text2); font-size: .9rem; }
+
+/* Drop zone */
+.drop-zone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 4rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all .3s;
+  margin: 2rem 0;
+  background: #ffffff;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: #4f46e5;
+  background: #eef2ff;
+}
+.drop-zone-icon { font-size: 3rem; margin-bottom: .5rem; opacity: .5; }
+.drop-zone h3 { font-size: 1.2rem; color: #4a5568; font-weight: 500; }
+.drop-zone p { color: #718096; font-size: .85rem; margin-top: .4rem; }
+
+/* Dashboard content */
+.dashboard-content { display: none; }
+.dashboard-content.show { display: block; }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: .25rem;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .25rem;
+  margin-bottom: 1.5rem;
+}
+.tab {
+  padding: .5rem 1.2rem;
+  border-radius: 6px;
+  font-size: .82rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text3);
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  transition: all .2s;
+}
+.tab.active { background: #4f46e5; color: #fff; }
+.tab:hover:not(.active) { color: var(--text); }
+
+/* Row 2x */
+.charts-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 900px) {
+  .charts-grid-2col { grid-template-columns: 1fr; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .summary-grid { grid-template-columns: repeat(2, 1fr); }
+  .header { padding: .75rem 1rem; }
+  .header h1 { font-size: 1rem; }
+  .container { padding: 1rem; }
+  .insights-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 500px) {
+  .summary-grid { grid-template-columns: 1fr; }
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .filter-count { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-logo">ITS</div>
+    <div>
+      <h1><span>ITS Campania</span> — Training Program</h1>
+      <div class="header-subtitle">Executive Dashboard · Italian Language Course</div>
+    </div>
+  </div>
+  <div class="header-controls">
+    <div class="file-info" id="fileInfo">
+      <span id="fileName"></span>
+      <button class="btn btn-sm btn-danger" onclick="resetApp()">✕</button>
+    </div>
+    <div class="upload-area">
+      <button class="btn btn-primary" id="uploadBtn">📂 Upload Excel</button>
+      <input type="file" id="fileInput" accept=".xlsx,.xls">
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="exportPDF()">📥 Export</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Drop Zone -->
+  <div class="drop-zone" id="dropZone">
+    <div class="drop-zone-icon">📊</div>
+    <h3>Drop your Excel file here</h3>
+    <p>Upload the ITS Campania Training Program Management file to generate the dashboard</p>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>Processing data...</p>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div class="dashboard-content" id="dashboardContent">
+
+    <!-- Tabs -->
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="attendance">Attendance</button>
+      <button class="tab" data-tab="exams">Exams & Grades</button>
+      <button class="tab" data-tab="performance">Performance</button>
+      <button class="tab" data-tab="instructors">Instructors</button>
+      <button class="tab" data-tab="data">Full Data</button>
+    </div>
+
+    <!-- Tab Content -->
+    <div id="tab-overview">
+      <!-- Summary Cards -->
+      <div class="summary-grid" id="summaryCards"></div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar" id="filterBar"></div>
+
+      <!-- Charts -->
+      <div class="charts-grid">
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Attendance by Session</div></div><div class="chart-body"><canvas id="attendanceChart"></canvas></div></div>
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Exam Scores Distribution</div></div><div class="chart-body"><canvas id="examChart"></canvas></div></div>
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Pass / Fail</div></div><div class="chart-body"><canvas id="passFailChart"></canvas></div></div>
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Performance by Group</div></div><div class="chart-body"><canvas id="groupChart"></canvas></div></div>
+      </div>
+
+      <!-- Insights -->
+      <div class="insights-grid" id="insightsOverview"></div>
+    </div>
+
+    <div id="tab-attendance" style="display:none">
+      <div class="charts-grid">
+        <div class="chart-card full"><div class="chart-header"><div class="chart-title">Attendance Trend — All Sessions</div></div><div class="chart-body"><canvas id="attendanceDetailChart"></canvas></div></div>
+      </div>
+      <div class="charts-grid-2col">
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Present / Absent / Late Distribution</div></div><div class="chart-body"><canvas id="attendanceDistChart"></canvas></div></div>
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Attendance by Group</div></div><div class="chart-body"><canvas id="attendanceGroupChart"></canvas></div></div>
+      </div>
+      <div class="insights-grid" id="attendanceInsights"></div>
+    </div>
+
+    <div id="tab-exams" style="display:none">
+      <div class="charts-grid">
+        <div class="chart-card full"><div class="chart-header"><div class="chart-title">Score Breakdown by Exam</div></div><div class="chart-body"><canvas id="examDetailChart"></canvas></div></div>
+      </div>
+      <div class="charts-grid-2col">
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Grade Distribution</div></div><div class="chart-body"><canvas id="gradeChart"></canvas></div></div>
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Top 10 Trainees (Avg Score)</div></div><div class="chart-body"><canvas id="topTraineesChart"></canvas></div></div>
+      </div>
+    </div>
+
+    <div id="tab-performance" style="display:none">
+      <div class="charts-grid">
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Performance Level Distribution</div></div><div class="chart-body"><canvas id="perfLevelChart"></canvas></div></div>
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Governorate Distribution</div></div><div class="chart-body"><canvas id="govChart"></canvas></div></div>
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Attendance vs Score Correlation</div></div><div class="chart-body"><canvas id="correlationChart"></canvas></div></div>
+        <div class="chart-card"><div class="chart-header"><div class="chart-title">Gender Distribution</div></div><div class="chart-body"><canvas id="genderChart"></canvas></div></div>
+      </div>
+    </div>
+
+    <div id="tab-instructors" style="display:none">
+      <div class="charts-grid">
+        <div class="chart-card full"><div class="chart-header"><div class="chart-title">Instructor Performance Comparison</div></div><div class="chart-body"><canvas id="instructorChart"></canvas></div></div>
+      </div>
+      <div class="table-wrapper">
+        <div class="table-header"><h3>Instructor Report</h3></div>
+        <div class="table-scroll"><table id="instructorTable"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <div id="tab-data" style="display:none">
+      <div class="table-wrapper">
+        <div class="table-header">
+          <h3>Trainees Database</h3>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <input type="text" id="dataSearch" placeholder="Search by name or ID..." style="background:#f8fafc;border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.4rem .6rem;font-size:.8rem;font-family:inherit">
+            <span id="dataCount" style="font-size:.8rem;color:var(--text2)"></span>
+          </div>
+        </div>
+        <div class="table-scroll"><table id="dataTable"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  trainees: [],
+  attendance: [],
+  exams: [],
+  performance: [],
+  instructors: [],
+  dashboardData: null,
+  settings: null,
+  attendanceSessions: [],
+  examNames: [],
+  governorates: [],
+  groups: [],
+  instructorsList: [],
+  filteredTrainees: [],
+  charts: {},
+};
+
+// ============================================================
+// FILE HANDLING
+// ============================================================
+const fileInput = document.getElementById('fileInput');
+const dropZone = document.getElementById('dropZone');
+const loading = document.getElementById('loading');
+const dashboardContent = document.getElementById('dashboardContent');
+const fileInfo = document.getElementById('fileInfo');
+const fileName = document.getElementById('fileName');
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length) handleFile(e.target.files[0]);
+});
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+
+function handleFile(file) {
+  if (!file.name.match(/\.xlsx?$/i)) { alert('Please upload an .xlsx file'); return; }
+  showLoading();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+      parseWorkbook(workbook);
+      showDashboard();
+      renderDashboard();
+      fileName.textContent = file.name;
+      fileInfo.classList.add('show');
+    } catch(err) { alert('Error parsing file: ' + err.message); hideLoading(); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function resetApp() {
+  Object.values(state.charts).forEach(c => { try { c.destroy(); } catch(e) {} });
+  state = { trainees:[], attendance:[], exams:[], performance:[], instructors:[], dashboardData:null, settings:null, attendanceSessions:[], examNames:[], governorates:[], groups:[], instructorsList:[], filteredTrainees:[], charts:{} };
+  fileInput.value = '';
+  fileInfo.classList.remove('show');
+  dashboardContent.classList.remove('show');
+  dropZone.style.display = 'block';
+}
+
+function showLoading() { dropZone.style.display = 'none'; loading.classList.add('show'); dashboardContent.classList.remove('show'); }
+function hideLoading() { loading.classList.remove('show'); }
+function showDashboard() { hideLoading(); dashboardContent.classList.add('show'); }
+
+// ============================================================
+// PARSING
+// ============================================================
+function parseWorkbook(wb) {
+  // Settings
+  const settingsSheet = wb.Sheets['Settings'];
+  if (settingsSheet) {
+    const data = XLSX.utils.sheet_to_json(settingsSheet, { header: 1, defval: '' });
+    state.settings = { passingScore: 80, courses: [], instructors: [], groups: [], branches: [], genders: [], statuses: [], grades: [], minPercentages: [], attendanceValues: [] };
+    for (let i = 2; i < data.length; i++) {
+      const row = data[i];
+      if (row[2]) state.settings.courses.push(row[2]);
+      if (row[3]) state.settings.instructors.push(row[3]);
+      if (row[4]) state.settings.groups.push(row[4]);
+      if (row[5]) state.settings.branches.push(row[5]);
+      if (row[6]) state.settings.genders.push(row[6]);
+      if (row[7]) state.settings.statuses.push(row[7]);
+      if (row[8]) state.settings.grades.push(row[8]);
+      if (row[9]) state.settings.minPercentages.push(row[9]);
+      if (row[10]) state.settings.attendanceValues.push(row[10]);
+    }
+    if (data[2] && data[2][1]) state.settings.passingScore = parseFloat(data[2][1]) || 80;
+  }
+
+  // Trainees Database
+  const traineesSheet = wb.Sheets['Trainees Database'];
+  if (traineesSheet) {
+    const data = XLSX.utils.sheet_to_json(traineesSheet, { header: 1, defval: '', range: 3 });
+    state.trainees = data.filter(r => r[0]).map(r => ({
+      id: String(r[0]),
+      name: String(r[1] || ''),
+      nationalId: String(r[2] || ''),
+      phone: String(r[3] || ''),
+      email: String(r[4] || ''),
+      gender: String(r[5] || ''),
+      age: r[6] ? String(r[6]) : '',
+      governorate: String(r[7] || ''),
+      group: String(r[8] || ''),
+      course: String(r[9] || ''),
+      instructor: String(r[10] || ''),
+      branch: String(r[11] || ''),
+      startDate: r[12] ? formatDate(r[12]) : '',
+      endDate: r[13] ? formatDate(r[13]) : '',
+      status: String(r[14] || ''),
+    }));
+    state.governorates = [...new Set(state.trainees.map(t => t.governorate).filter(Boolean))].sort();
+    state.groups = [...new Set(state.trainees.map(t => t.group).filter(Boolean))].sort();
+    state.instructorsList = [...new Set(state.trainees.map(t => t.instructor).filter(Boolean))].sort();
+  }
+
+  // Attendance
+  const attSheet = wb.Sheets['Attendance'];
+  if (attSheet) {
+    const data = XLSX.utils.sheet_to_json(attSheet, { header: 1, defval: '', range: 3 });
+    const headerRow = data[0] || [];
+    state.attendance = [];
+    for (let i = 1; i < data.length; i++) {
+      const r = data[i];
+      if (!r[0]) continue;
+      const sessions = {};
+      for (let j = 2; j < 47 && j < r.length; j++) {
+        if (headerRow[j]) sessions[headerRow[j]] = String(r[j] || '');
+      }
+      state.attendance.push({
+        id: String(r[0]),
+        name: String(r[1] || ''),
+        sessions,
+        presentCount: r[47] ? parseFloat(r[47]) || 0 : 0,
+        absentCount: r[48] ? parseFloat(r[48]) || 0 : 0,
+        lateCount: r[49] ? parseFloat(r[49]) || 0 : 0,
+        attendancePct: r[50] ? parseFloat(r[50]) || 0 : 0,
+      });
+    }
+    // Only include sessions that have actual attendance data
+    const allSessionNames = headerRow.slice(2, 47).filter(Boolean);
+    state.attendanceSessions = allSessionNames.filter(s =>
+      state.attendance.some(a => a.sessions[s] && a.sessions[s] !== '')
+    );
+  }
+
+  // Exams
+  const examsSheet = wb.Sheets['Exams'];
+  if (examsSheet) {
+    const data = XLSX.utils.sheet_to_json(examsSheet, { header: 1, defval: '', range: 3 });
+    const headerRow = data[0] || [];
+    state.examNames = headerRow.slice(2, 12).filter(Boolean);
+    state.exams = [];
+    for (let i = 1; i < data.length; i++) {
+      const r = data[i];
+      if (!r[0]) continue;
+      const scores = {};
+      for (let j = 2; j < 12 && j < r.length; j++) {
+        const val = r[j];
+        scores[headerRow[j]] = val !== '' ? parseFloat(val) : null;
+      }
+      state.exams.push({
+        id: String(r[0]),
+        name: String(r[1] || ''),
+        scores,
+        totalScore: r[12] !== '' ? parseFloat(r[12]) : null,
+        percentage: r[13] !== '' ? parseFloat(r[13]) : null,
+        grade: String(r[14] || ''),
+        passStatus: String(r[15] || ''),
+        scoreTrend: String(r[16] || ''),
+      });
+    }
+  }
+
+  // Performance Report
+  const perfSheet = wb.Sheets['Performance Report'];
+  if (perfSheet) {
+    const data = XLSX.utils.sheet_to_json(perfSheet, { header: 1, defval: '', range: 3 });
+    state.performance = data.filter(r => r[0]).map(r => ({
+      id: String(r[0]),
+      name: String(r[1] || ''),
+      attendancePct: r[2] !== '' ? parseFloat(r[2]) : null,
+      avgScore: r[3] !== '' ? parseFloat(r[3]) : null,
+      rank: r[4] !== '' ? parseInt(r[4]) : null,
+      performanceLevel: String(r[5] || ''),
+      recommendation: String(r[6] || ''),
+      group: String(r[7] || ''),
+      course: String(r[8] || ''),
+    }));
+  }
+
+  // Instructor Report
+  const instrSheet = wb.Sheets['Instructor Report'];
+  if (instrSheet) {
+    const data = XLSX.utils.sheet_to_json(instrSheet, { header: 1, defval: '', range: 3 });
+    state.instructors = data.filter(r => r[0]).map(r => ({
+      name: String(r[0] || ''),
+      trainees: r[1] !== '' ? parseInt(r[1]) : 0,
+      avgAttendance: r[2] !== '' ? parseFloat(r[2]) : null,
+      avgScore: r[3] !== '' ? parseFloat(r[3]) : null,
+      passRate: r[4] !== '' ? parseFloat(r[4]) : null,
+      bestGroup: String(r[5] || ''),
+      lowestGroup: String(r[6] || ''),
+    }));
+  }
+
+  // DashboardData
+  const ddSheet = wb.Sheets['_DashboardData'];
+  if (ddSheet) {
+    const data = XLSX.utils.sheet_to_json(ddSheet, { header: 1, defval: '' });
+    state.dashboardData = data;
+  }
+}
+
+function formatDate(v) {
+  if (v instanceof Date) return v.toLocaleDateString('en-GB');
+  if (typeof v === 'number') {
+    const d = new Date((v - 25569) * 86400 * 1000);
+    return d.toLocaleDateString('en-GB');
+  }
+  return String(v);
+}
+
+// ============================================================
+// FILTERING
+// ============================================================
+function getFilteredData() {
+  const filters = getFilterValues();
+  if (!state.performance.length) return { performance: [], trainees: [], exams: [], attendance: [] };
+  let perf = [...state.performance];
+  let tra = [...state.trainees];
+  let ex = [...state.exams];
+  let att = [...state.attendance];
+
+  if (filters.group) {
+    perf = perf.filter(p => p.group === filters.group);
+    tra = tra.filter(t => t.group === filters.group);
+  }
+  if (filters.instructor) {
+    tra = tra.filter(t => t.instructor === filters.instructor);
+    const ids = new Set(tra.map(t => t.id));
+    perf = perf.filter(p => ids.has(p.id));
+    ex = ex.filter(e => ids.has(e.id));
+    att = att.filter(a => ids.has(a.id));
+  }
+  if (filters.governorate) {
+    tra = tra.filter(t => t.governorate === filters.governorate);
+    const ids = new Set(tra.map(t => t.id));
+    perf = perf.filter(p => ids.has(p.id));
+    ex = ex.filter(e => ids.has(e.id));
+    att = att.filter(a => ids.has(a.id));
+  }
+  if (filters.gender) {
+    tra = tra.filter(t => t.gender === filters.gender);
+    const ids = new Set(tra.map(t => t.id));
+    perf = perf.filter(p => ids.has(p.id));
+    ex = ex.filter(e => ids.has(e.id));
+    att = att.filter(a => ids.has(a.id));
+  }
+  if (filters.performanceLevel) {
+    perf = perf.filter(p => p.performanceLevel === filters.performanceLevel);
+    const ids = new Set(perf.map(p => p.id));
+    tra = tra.filter(t => ids.has(t.id));
+    ex = ex.filter(e => ids.has(e.id));
+    att = att.filter(a => ids.has(a.id));
+  }
+  if (filters.grade) {
+    ex = ex.filter(e => e.grade === filters.grade);
+    const ids = new Set(ex.map(e => e.id));
+    tra = tra.filter(t => ids.has(t.id));
+    perf = perf.filter(p => ids.has(p.id));
+    att = att.filter(a => ids.has(a.id));
+  }
+  if (filters.status) {
+    tra = tra.filter(t => t.status === filters.status);
+    const ids = new Set(tra.map(t => t.id));
+    perf = perf.filter(p => ids.has(p.id));
+    ex = ex.filter(e => ids.has(e.id));
+    att = att.filter(a => ids.has(a.id));
+  }
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    tra = tra.filter(t => t.name.toLowerCase().includes(q) || t.id.includes(q));
+    const ids = new Set(tra.map(t => t.id));
+    perf = perf.filter(p => ids.has(p.id));
+    ex = ex.filter(e => ids.has(e.id));
+    att = att.filter(a => ids.has(a.id));
+  }
+  return { performance: perf, trainees: tra, exams: ex, attendance: att };
+}
+
+function getFilterValues() {
+  return {
+    group: document.getElementById('f-group')?.value || '',
+    instructor: document.getElementById('f-instructor')?.value || '',
+    governorate: document.getElementById('f-governorate')?.value || '',
+    gender: document.getElementById('f-gender')?.value || '',
+    performanceLevel: document.getElementById('f-level')?.value || '',
+    grade: document.getElementById('f-grade')?.value || '',
+    status: document.getElementById('f-status')?.value || '',
+    search: document.getElementById('dataSearch')?.value || '',
+  };
+}
+
+// ============================================================
+// DASHBOARD RENDER
+// ============================================================
+function renderDashboard() {
+  renderFilterBar();
+  renderSummaryCards();
+  renderAllCharts();
+  renderInsights();
+  renderDataTable();
+  renderInstructorTable();
+}
+
+function renderFilterBar() {
+  const bar = document.getElementById('filterBar');
+  bar.innerHTML = `
+    <label>Group</label>
+    <select id="f-group" onchange="onFilterChange()"><option value="">All</option>${state.groups.map(g => `<option value="${g}">${g}</option>`).join('')}</select>
+    <label>Instructor</label>
+    <select id="f-instructor" onchange="onFilterChange()"><option value="">All</option>${state.instructorsList.map(i => `<option value="${i}">${i}</option>`).join('')}</select>
+    <label>Governorate</label>
+    <select id="f-governorate" onchange="onFilterChange()"><option value="">All</option>${state.governorates.map(g => `<option value="${g}">${g}</option>`).join('')}</select>
+    <label>Gender</label>
+    <select id="f-gender" onchange="onFilterChange()"><option value="">All</option><option value="Male">Male</option><option value="Female">Female</option></select>
+    <label>Level</label>
+    <select id="f-level" onchange="onFilterChange()"><option value="">All</option><option value="Excellent">Excellent</option><option value="Good">Good</option><option value="Needs Improvement">Needs Improvement</option><option value="At Risk">At Risk</option></select>
+    <label>Grade</label>
+    <select id="f-grade" onchange="onFilterChange()"><option value="">All</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="F">F</option></select>
+    <label>Status</label>
+    <select id="f-status" onchange="onFilterChange()"><option value="">All</option><option value="Active">Active</option><option value="Completed">Completed</option><option value="Dropped">Dropped</option></select>
+    <div class="filter-count" id="filterCount">0 trainees</div>
+  `;
+}
+
+function onFilterChange() {
+  const filtered = getFilteredData();
+  state.filteredTrainees = filtered.trainees;
+  document.getElementById('filterCount').textContent = `${filtered.trainees.length} trainees`;
+  renderSummaryCards();
+  renderAllCharts();
+  renderInsights();
+  renderDataTable();
+  renderInstructorTable();
+}
+
+function renderSummaryCards() {
+  const filtered = getFilteredData();
+  const { performance, trainees, exams, attendance } = filtered;
+  const total = trainees.length;
+  const passed = exams.filter(e => e.passStatus === 'Pass').length;
+  const failed = exams.filter(e => e.passStatus === 'Fail').length;
+  const passRate = exams.length ? (passed / exams.length) : 0;
+  const avgScore = performance.length ? performance.reduce((s,p) => s + (p.avgScore || 0), 0) / performance.length : 0;
+  const avgAtt = attendance.length ? attendance.reduce((s,a) => s + a.attendancePct, 0) / attendance.length : 0;
+  const atRisk = performance.filter(p => p.performanceLevel === 'At Risk' || p.performanceLevel === 'Needs Improvement').length;
+  const excellent = performance.filter(p => p.performanceLevel === 'Excellent').length;
+
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="summary-card"><div class="sc-icon">👥</div><div class="sc-label">Total Trainees</div><div class="sc-value primary">${total}</div><div class="sc-change" style="color:var(--text2)">${state.trainees.length} total in system</div></div>
+    <div class="summary-card"><div class="sc-icon">✅</div><div class="sc-label">Pass Rate</div><div class="sc-value success">${(passRate*100).toFixed(1)}%</div><div class="sc-change" style="color:var(--text2)">${passed} Passed · ${failed} Failed</div></div>
+    <div class="summary-card"><div class="sc-icon">📊</div><div class="sc-label">Avg Attendance</div><div class="sc-value info">${(avgAtt*100).toFixed(1)}%</div><div class="sc-change" style="color:var(--text2)">${attendance.length} trainees measured</div></div>
+    <div class="summary-card"><div class="sc-icon">🎯</div><div class="sc-label">Avg Score</div><div class="sc-value purple">${(avgScore*100).toFixed(1)}%</div><div class="sc-change" style="color:var(--text2)">Across all exams</div></div>
+    <div class="summary-card"><div class="sc-icon">⭐</div><div class="sc-label">Excellent</div><div class="sc-value success">${excellent}</div><div class="sc-change" style="color:var(--text2)">Top performers</div></div>
+    <div class="summary-card"><div class="sc-icon">⚠️</div><div class="sc-label">At Risk</div><div class="sc-value danger">${atRisk}</div><div class="sc-change" style="color:var(--text2)">Needs intervention</div></div>
+  `;
+}
+
+// ============================================================
+// CHARTS
+// ============================================================
+function renderAllCharts() {
+  renderAttendanceChart();
+  renderExamChart();
+  renderPassFailChart();
+  renderGroupChart();
+  renderAttendanceDetailChart();
+  renderAttendanceDistChart();
+  renderAttendanceGroupChart();
+  renderExamDetailChart();
+  renderGradeChart();
+  renderTopTraineesChart();
+  renderPerfLevelChart();
+  renderGovChart();
+  renderCorrelationChart();
+  renderGenderChart();
+  renderInstructorChart();
+}
+
+function destroyChart(key) {
+  if (state.charts[key]) { try { state.charts[key].destroy(); } catch(e) {} }
+}
+
+function renderAttendanceChart() {
+  destroyChart('attendance');
+  const filtered = getFilteredData();
+  const attIds = new Set(filtered.attendance.map(a => a.id));
+  const data = state.attendance.filter(a => attIds.has(a.id));
+  const sessions = state.attendanceSessions;
+  const present = sessions.map((s,i) => {
+    const p = data.filter(a => a.sessions[s] === 'Present').length;
+    return p;
+  });
+  const absent = sessions.map((s,i) => {
+    const p = data.filter(a => a.sessions[s] === 'Absent').length;
+    return p;
+  });
+  const late = sessions.map((s,i) => {
+    const p = data.filter(a => a.sessions[s] === 'Late').length;
+    return p;
+  });
+
+  const ctx = document.getElementById('attendanceChart').getContext('2d');
+  state.charts.attendance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sessions.map((s,i) => `S${i+1}`),
+      datasets: [
+        { label: 'Present', data: present, backgroundColor: '#4f46e5', borderRadius: 3 },
+        { label: 'Absent', data: absent, backgroundColor: '#f43f5e', borderRadius: 3 },
+        { label: 'Late', data: late, backgroundColor: '#f59e0b', borderRadius: 3 },
+      ]
+    },
+    options: chartOpts({ stacked: true })
+  });
+}
+
+function renderExamChart() {
+  destroyChart('exam');
+  const filtered = getFilteredData();
+  const exIds = new Set(filtered.exams.map(e => e.id));
+  const data = state.exams.filter(e => exIds.has(e.id));
+  const examKeys = state.examNames.filter(n => n);
+  const averages = examKeys.map(k => {
+    const vals = data.map(e => e.scores[k]).filter(v => v !== null && v !== undefined);
+    return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : 0;
+  });
+
+  const ctx = document.getElementById('examChart').getContext('2d');
+  state.charts.exam = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: examKeys.map(k => k.length > 10 ? k.slice(0,10)+'..' : k),
+      datasets: [{ label: 'Avg Score', data: averages, backgroundColor: '#4f46e5', borderRadius: 4 }]
+    },
+    options: chartOpts({ scales: { y: { beginAtZero: true, max: 1, ticks: { callback: v => (v*100)+'%' } } } })
+  });
+}
+
+function renderPassFailChart() {
+  destroyChart('passFail');
+  const filtered = getFilteredData();
+  const passed = filtered.exams.filter(e => e.passStatus === 'Pass').length;
+  const failed = filtered.exams.filter(e => e.passStatus === 'Fail').length;
+  const ctx = document.getElementById('passFailChart').getContext('2d');
+  state.charts.passFail = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Pass', 'Fail'],
+      datasets: [{ data: [passed, failed], backgroundColor: ['#4f46e5', '#e2e8f0'], borderWidth: 0 }]
+    },
+    options: chartOpts({ cutout: '65%', plugins: { legend: { position: 'bottom' } } })
+  });
+}
+
+function renderGroupChart() {
+  destroyChart('group');
+  const filtered = getFilteredData();
+  const groups = state.groups;
+  const perfByGroup = groups.map(g => {
+    const p = filtered.performance.filter(pr => pr.group === g);
+    return {
+      att: p.length ? p.reduce((s,pr) => s + (pr.attendancePct || 0), 0) / p.length : 0,
+      score: p.length ? p.reduce((s,pr) => s + (pr.avgScore || 0), 0) / p.length : 0,
+      count: p.length
+    };
+  });
+  const ctx = document.getElementById('groupChart').getContext('2d');
+  state.charts.group = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: groups,
+      datasets: [
+        { label: 'Attendance', data: perfByGroup.map(d => d.att), backgroundColor: '#4f46e5', borderRadius: 3 },
+        { label: 'Avg Score', data: perfByGroup.map(d => d.score), backgroundColor: '#0ea5e9', borderRadius: 3 },
+      ]
+    },
+    options: chartOpts({ scales: { y: { beginAtZero: true, max: 1, ticks: { callback: v => (v*100)+'%' } } } })
+  });
+}
+
+function renderAttendanceDetailChart() {
+  destroyChart('attDetail');
+  const filtered = getFilteredData();
+  const attIds = new Set(filtered.attendance.map(a => a.id));
+  const data = state.attendance.filter(a => attIds.has(a.id));
+  const sessions = state.attendanceSessions.filter(s => s);
+  const present = sessions.map(s => data.filter(a => a.sessions[s] === 'Present').length);
+  const absent = sessions.map(s => data.filter(a => a.sessions[s] === 'Absent').length);
+  const late = sessions.map(s => data.filter(a => a.sessions[s] === 'Late').length);
+  const totalLine = sessions.map((s,i) => present[i] + absent[i] + late[i]);
+
+  const ctx = document.getElementById('attendanceDetailChart').getContext('2d');
+  state.charts.attDetail = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: sessions.map((s,i) => s.length > 18 ? s.slice(0,3)+' '+s.slice(-4) : s),
+      datasets: [
+        { label: 'Present', data: present, backgroundColor: 'rgba(79,70,229,.08)', borderColor: '#4f46e5', fill: true, tension: .4, pointRadius: 3, pointBackgroundColor: '#4f46e5' },
+        { label: 'Absent', data: absent, backgroundColor: 'rgba(244,63,94,.08)', borderColor: '#f43f5e', fill: true, tension: .4, pointRadius: 3, pointBackgroundColor: '#f43f5e' },
+        { label: 'Late', data: late, backgroundColor: 'rgba(245,158,11,.08)', borderColor: '#f59e0b', fill: true, tension: .4, pointRadius: 3, pointBackgroundColor: '#f59e0b' },
+      ]
+    },
+    options: chartOpts({})
+  });
+}
+
+function renderAttendanceDistChart() {
+  destroyChart('attDist');
+  const filtered = getFilteredData();
+  const data = filtered.attendance;
+  const totalP = data.reduce((s,a) => s + a.presentCount, 0);
+  const totalA = data.reduce((s,a) => s + a.absentCount, 0);
+  const totalL = data.reduce((s,a) => s + a.lateCount, 0);
+  const ctx = document.getElementById('attendanceDistChart').getContext('2d');
+  state.charts.attDist = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Present', 'Absent', 'Late'],
+      datasets: [{ data: [totalP, totalA, totalL], backgroundColor: ['#4f46e5', '#f43f5e', '#f59e0b'], borderWidth: 0 }]
+    },
+    options: chartOpts({ cutout: '60%', plugins: { legend: { position: 'bottom' } } })
+  });
+}
+
+function renderAttendanceGroupChart() {
+  destroyChart('attGroup');
+  const groups = state.groups;
+  const filtered = getFilteredData();
+  const traineeGroup = {};
+  state.trainees.forEach(t => { traineeGroup[t.id] = t.group; });
+  const data = state.attendance.filter(a => filtered.attendance.some(fa => fa.id === a.id));
+  const groupData = groups.map(g => {
+    const members = data.filter(a => traineeGroup[a.id] === g);
+    return {
+      att: members.length ? members.reduce((s,m) => s + m.attendancePct, 0) / members.length : 0,
+      count: members.length
+    };
+  });
+  const ctx = document.getElementById('attendanceGroupChart').getContext('2d');
+  state.charts.attGroup = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: groups,
+      datasets: [{ label: 'Avg Attendance', data: groupData.map(d => d.att), backgroundColor: ['#4f46e5','#0ea5e9','#14b8a6','#f59e0b'], borderRadius: 6 }]
+    },
+    options: chartOpts({ scales: { y: { beginAtZero: true, max: 1, ticks: { callback: v => (v*100)+'%' } } } })
+  });
+}
+
+function renderExamDetailChart() {
+  destroyChart('examDetail');
+  const filtered = getFilteredData();
+  const exIds = new Set(filtered.exams.map(e => e.id));
+  const data = state.exams.filter(e => exIds.has(e.id));
+  const examKeys = state.examNames.filter(n => n);
+  const dataset = examKeys.map(k => {
+    const vals = data.map(e => e.scores[k]).filter(v => v !== null && v !== undefined);
+    if (!vals.length) return null;
+    const sum = vals.reduce((a,b) => a+b, 0);
+    return { avg: sum / vals.length, min: Math.min(...vals), max: Math.max(...vals) };
+  });
+  const ctx = document.getElementById('examDetailChart').getContext('2d');
+  state.charts.examDetail = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: examKeys.map(k => k.length > 12 ? k.slice(0,12) : k),
+      datasets: [
+        { label: 'Average', data: dataset.map(d => d ? d.avg : null), borderColor: '#4f46e5', backgroundColor: 'rgba(79,70,229,.08)', fill: true, tension: .4, pointRadius: 5, pointBackgroundColor: '#4f46e5', pointBorderColor: '#fff', pointBorderWidth: 2 },
+        { label: 'Max', data: dataset.map(d => d ? d.max : null), borderColor: '#10b981', borderDash: [5,5], tension: .4, pointRadius: 3, pointBackgroundColor: '#10b981' },
+        { label: 'Min', data: dataset.map(d => d ? d.min : null), borderColor: '#f43f5e', borderDash: [5,5], tension: .4, pointRadius: 3, pointBackgroundColor: '#f43f5e' },
+      ]
+    },
+    options: chartOpts({ scales: { y: { beginAtZero: true, max: 1.05, ticks: { callback: v => (v*100)+'%' } } } })
+  });
+}
+
+function renderGradeChart() {
+  destroyChart('grade');
+  const filtered = getFilteredData();
+  const grades = ['A','B','C','D','F'];
+  const counts = grades.map(g => filtered.exams.filter(e => e.grade === g).length);
+  const colors = ['#4f46e5', '#0ea5e9', '#14b8a6', '#f59e0b', '#f43f5e'];
+  const ctx = document.getElementById('gradeChart').getContext('2d');
+  state.charts.grade = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: grades,
+      datasets: [{ label: 'Trainees', data: counts, backgroundColor: colors, borderRadius: 6 }]
+    },
+    options: chartOpts({})
+  });
+}
+
+function renderTopTraineesChart() {
+  destroyChart('topTrainees');
+  const filtered = getFilteredData();
+  const sorted = [...filtered.performance].sort((a,b) => (b.avgScore || 0) - (a.avgScore || 0)).slice(0, 10);
+  const ctx = document.getElementById('topTraineesChart').getContext('2d');
+  state.charts.topTrainees = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(p => p.name.split(' ').slice(0,2).join(' ')),
+      datasets: [{ label: 'Avg Score', data: sorted.map((p,i) => p.avgScore || 0), backgroundColor: sorted.map((_,i) => `hsl(245,${75-i*5}%,${60-i*3}%)`), borderRadius: 4 }]
+    },
+    options: chartOpts({
+      indexAxis: 'y',
+      scales: { x: { beginAtZero: true, max: 1, ticks: { callback: v => (v*100)+'%' } } },
+      plugins: { legend: { display: false } }
+    })
+  });
+}
+
+function renderPerfLevelChart() {
+  destroyChart('perfLevel');
+  const filtered = getFilteredData();
+  const levels = ['Excellent', 'Good', 'Needs Improvement', 'At Risk'];
+  const counts = levels.map(l => filtered.performance.filter(p => p.performanceLevel === l).length);
+  const colors = ['#4f46e5', '#0ea5e9', '#f59e0b', '#94a3b8'];
+  const ctx = document.getElementById('perfLevelChart').getContext('2d');
+  state.charts.perfLevel = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: levels,
+      datasets: [{ data: counts, backgroundColor: colors, borderWidth: 0 }]
+    },
+    options: chartOpts({ cutout: '55%', plugins: { legend: { position: 'bottom' } } })
+  });
+}
+
+function renderGovChart() {
+  destroyChart('gov');
+  const filtered = getFilteredData();
+  const govs = {};
+  filtered.trainees.forEach(t => { govs[t.governorate] = (govs[t.governorate] || 0) + 1; });
+  const entries = Object.entries(govs).sort((a,b) => b[1] - a[1]);
+  const ctx = document.getElementById('govChart').getContext('2d');
+  state.charts.gov = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: entries.map(e => e[0]),
+      datasets: [{ label: 'Trainees', data: entries.map(e => e[1]), backgroundColor: '#4f46e5', borderRadius: 4 }]
+    },
+    options: chartOpts({})
+  });
+}
+
+function renderCorrelationChart() {
+  destroyChart('correlation');
+  const filtered = getFilteredData();
+  const data = filtered.performance.filter(p => p.attendancePct !== null && p.avgScore !== null);
+  const ctx = document.getElementById('correlationChart').getContext('2d');
+  state.charts.correlation = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: 'Trainees',
+        data: data.map(p => ({ x: p.attendancePct, y: p.avgScore })),
+        backgroundColor: 'rgba(79,70,229,.3)', pointBorderColor: '#4f46e5', pointBorderWidth: 1,
+        pointRadius: 5,
+      }]
+    },
+    options: chartOpts({
+      scales: {
+        x: { title: { display: true, text: 'Attendance %', color: '#94a3b8' }, min: 0, max: 1, ticks: { callback: v => (v*100)+'%' } },
+        y: { title: { display: true, text: 'Score %', color: '#94a3b8' }, min: 0, max: 1, ticks: { callback: v => (v*100)+'%' } }
+      }
+    })
+  });
+}
+
+function renderGenderChart() {
+  destroyChart('gender');
+  const filtered = getFilteredData();
+  const m = filtered.trainees.filter(t => t.gender === 'Male').length;
+  const f = filtered.trainees.filter(t => t.gender === 'Female').length;
+  const ctx = document.getElementById('genderChart').getContext('2d');
+  state.charts.gender = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Male', 'Female'],
+      datasets: [{ data: [m, f], backgroundColor: ['#4f46e5', '#0ea5e9'], borderWidth: 0 }]
+    },
+    options: chartOpts({ cutout: '60%', plugins: { legend: { position: 'bottom' } } })
+  });
+}
+
+function renderInstructorChart() {
+  destroyChart('instructor');
+  const ctx = document.getElementById('instructorChart').getContext('2d');
+  const data = state.instructors;
+  state.charts.instructor = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.map(i => i.name),
+      datasets: [
+        { label: 'Avg Attendance', data: data.map(i => i.avgAttendance || 0), backgroundColor: '#4f46e5', borderRadius: 3 },
+        { label: 'Avg Score', data: data.map(i => i.avgScore || 0), backgroundColor: '#0ea5e9', borderRadius: 3 },
+        { label: 'Pass Rate', data: data.map(i => i.passRate || 0), backgroundColor: '#10b981', borderRadius: 3 },
+      ]
+    },
+    options: chartOpts({ scales: { y: { beginAtZero: true, max: 1, ticks: { callback: v => (v*100)+'%' } } } })
+  });
+}
+
+function chartOpts(extra) {
+  const defaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: '#475569', font: { size: 11, family: 'Inter' }, boxWidth: 14, padding: 12, usePointStyle: true, pointStyle: 'circle' } },
+      tooltip: { backgroundColor: '#fff', titleColor: '#0f172a', bodyColor: '#475569', borderColor: '#e2e4e9', borderWidth: 1, padding: 10, cornerRadius: 8, boxPadding: 4, usePointStyle: true }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(0,0,0,.05)', drawBorder: false }, ticks: { color: '#64748b', font: { size: 10, family: 'Inter' }, padding: 6 } },
+      y: { grid: { color: 'rgba(0,0,0,.05)', drawBorder: false }, ticks: { color: '#64748b', font: { size: 10, family: 'Inter' }, padding: 8 } }
+    }
+  };
+  if (extra) {
+    if (extra.scales) Object.assign(defaults.scales, extra.scales);
+    if (extra.plugins) Object.assign(defaults.plugins, extra.plugins);
+    if (extra.cutout) defaults.cutout = extra.cutout;
+    if (extra.indexAxis) defaults.indexAxis = extra.indexAxis;
+    if (extra.stacked && defaults.scales.x) defaults.scales.x.stacked = true;
+    if (extra.stacked && defaults.scales.y) defaults.scales.y.stacked = true;
+    if (extra.maintainAspectRatio !== undefined) defaults.maintainAspectRatio = extra.maintainAspectRatio;
+  }
+  return defaults;
+}
+
+// ============================================================
+// INSIGHTS
+// ============================================================
+function renderInsights() {
+  const filtered = getFilteredData();
+  const { performance, exams, attendance, trainees } = filtered;
+
+  // Top 5
+  const top5 = [...performance].sort((a,b) => (b.avgScore || 0) - (a.avgScore || 0)).slice(0, 5);
+  const bottom5 = [...performance].sort((a,b) => (a.avgScore || 0) - (b.avgScore || 0)).slice(0, 5);
+  const bestAtt = [...attendance].sort((a,b) => b.attendancePct - a.attendancePct).slice(0, 3);
+  const worstAtt = [...attendance].sort((a,b) => a.attendancePct - b.attendancePct).slice(0, 3);
+
+  // Group ranking
+  const grpRank = state.groups.map(g => {
+    const p = performance.filter(pr => pr.group === g);
+    return { group: g, score: p.length ? p.reduce((s,pr) => s + (pr.avgScore || 0), 0) / p.length : 0 };
+  }).sort((a,b) => b.score - a.score);
+
+  document.getElementById('insightsOverview').innerHTML = `
+    <div class="insight-card">
+      <h3>🏆 Top 5 Performers</h3>
+      <ul class="insight-list">
+        ${top5.map((p,i) => `<li><span class="insight-rank">#${i+1}</span><span class="insight-name">${p.name}</span><span class="insight-score good">${((p.avgScore||0)*100).toFixed(1)}%</span><span class="badge badge-success">${p.performanceLevel}</span></li>`).join('')}
+      </ul>
+    </div>
+    <div class="insight-card">
+      <h3>⚠️ Needs Improvement</h3>
+      <ul class="insight-list">
+        ${bottom5.map((p,i) => `<li><span class="insight-rank">#${i+1}</span><span class="insight-name">${p.name}</span><span class="insight-score bad">${((p.avgScore||0)*100).toFixed(1)}%</span><span class="badge ${p.performanceLevel === 'At Risk' ? 'badge-danger' : 'badge-warning'}">${p.performanceLevel}</span></li>`).join('')}
+      </ul>
+    </div>
+    <div class="insight-card">
+      <h3>📊 Group Rankings</h3>
+      <ul class="insight-list">
+        ${grpRank.map((g,i) => `<li><span class="insight-rank">#${i+1}</span><span class="insight-name">${g.group}</span><span class="insight-score good">${(g.score*100).toFixed(1)}%</span></li>`).join('')}
+      </ul>
+    </div>
+    <div class="insight-card">
+      <h3>📈 Best Attendance</h3>
+      <ul class="insight-list">
+        ${bestAtt.map(a => `<li><span class="insight-name">${a.name}</span><span class="insight-score good">${(a.attendancePct*100).toFixed(1)}%</span></li>`).join('')}
+      </ul>
+    </div>
+  `;
+
+  // Attendance insights
+  const totalSessions = state.attendanceSessions.filter(s => s).length;
+  const avgOverallAtt = state.attendance.length ? state.attendance.reduce((s,a) => s + a.attendancePct, 0) / state.attendance.length : 0;
+  const highAtt = state.attendance.filter(a => a.attendancePct >= 0.9).length;
+  const lowAtt = state.attendance.filter(a => a.attendancePct < 0.6).length;
+  document.getElementById('attendanceInsights').innerHTML = `
+    <div class="insight-card">
+      <h3>📋 Attendance Summary</h3>
+      <ul class="insight-list">
+        <li><span>Total Sessions Tracked</span><span style="font-weight:600">${totalSessions}</span></li>
+        <li><span>Overall Avg Attendance</span><span style="font-weight:600;color:var(--success)">${(avgOverallAtt*100).toFixed(1)}%</span></li>
+        <li><span>High Attendees (≥90%)</span><span style="font-weight:600;color:var(--info)">${highAtt}</span></li>
+        <li><span>Low Attendees (<60%)</span><span style="font-weight:600;color:var(--danger)">${lowAtt}</span></li>
+      </ul>
+    </div>
+    <div class="insight-card">
+      <h3>📊 Session Stats</h3>
+      <ul class="insight-list">
+        <li><span>Best Session Attendance</span><span style="font-weight:600;color:var(--success)">${getBestSession()}</span></li>
+        <li><span>Worst Session Attendance</span><span style="font-weight:600;color:var(--danger)">${getWorstSession()}</span></li>
+      </ul>
+    </div>
+  `;
+}
+
+function getBestSession() {
+  const sessions = state.attendanceSessions.filter(s => s);
+  let best = { name: '', count: 0 };
+  sessions.forEach(s => {
+    const c = state.attendance.filter(a => a.sessions[s] === 'Present').length;
+    if (c > best.count) { best = { name: s, count: c }; }
+  });
+  return best.name ? `${best.count} (${best.name.slice(0,12)}...)` : 'N/A';
+}
+
+function getWorstSession() {
+  const sessions = state.attendanceSessions.filter(s => s);
+  let worst = { name: '', count: Infinity };
+  sessions.forEach(s => {
+    const c = state.attendance.filter(a => a.sessions[s] === 'Present').length;
+    if (c < worst.count) { worst = { name: s, count: c }; }
+  });
+  return worst.count < Infinity ? `${worst.count} (${worst.name.slice(0,12)}...)` : 'N/A';
+}
+
+// ============================================================
+// INSTRUCTOR TABLE
+// ============================================================
+function renderInstructorTable() {
+  const table = document.getElementById('instructorTable');
+  const thead = table.querySelector('thead');
+  const tbody = table.querySelector('tbody');
+  thead.innerHTML = '<tr><th>Instructor</th><th>Trainees</th><th>Avg Attendance</th><th>Avg Score</th><th>Pass Rate</th><th>Best Group</th><th>Lowest Group</th></tr>';
+  tbody.innerHTML = state.instructors.map(i => `
+    <tr>
+      <td style="font-weight:600">${i.name}</td>
+      <td>${i.trainees}</td>
+      <td>${i.avgAttendance !== null ? (i.avgAttendance*100).toFixed(1)+'%' : '-'}</td>
+      <td>${i.avgScore !== null ? (i.avgScore*100).toFixed(1)+'%' : '-'}</td>
+      <td>${i.passRate !== null ? (i.passRate*100).toFixed(1)+'%' : '-'}</td>
+      <td>${i.bestGroup || '-'}</td>
+      <td>${i.lowestGroup || '-'}</td>
+    </tr>
+  `).join('');
+}
+
+// ============================================================
+// DATA TABLE
+// ============================================================
+let dataSortCol = -1, dataSortDir = 1;
+
+function renderDataTable() {
+  const filtered = getFilteredData();
+  let tra = [...filtered.trainees];
+  const perfMap = {};
+  filtered.performance.forEach(p => { perfMap[p.id] = p; });
+  const examMap = {};
+  filtered.exams.forEach(e => { examMap[e.id] = e; });
+
+  // Apply sort
+  if (dataSortCol >= 0) {
+    const keys = ['id','name','group','instructor','governorate'];
+    tra.sort((a,b) => {
+      let va, vb;
+      if (dataSortCol < 5) {
+        va = (a[keys[dataSortCol]] || '').toLowerCase();
+        vb = (b[keys[dataSortCol]] || '').toLowerCase();
+      } else {
+        const pA = perfMap[a.id], pB = perfMap[b.id];
+        const eA = examMap[a.id], eB = examMap[b.id];
+        if (dataSortCol === 5) { va = pA ? pA.attendancePct || 0 : 0; vb = pB ? pB.attendancePct || 0 : 0; }
+        else if (dataSortCol === 6) { va = pA ? pA.avgScore || 0 : 0; vb = pB ? pB.avgScore || 0 : 0; }
+        else if (dataSortCol === 7) { va = eA ? eA.grade || '' : ''; vb = eB ? eB.grade || '' : ''; }
+        else if (dataSortCol === 8) { va = eA ? eA.passStatus || '' : ''; vb = eB ? eB.passStatus || '' : ''; }
+        else { va = pA ? pA.performanceLevel || '' : ''; vb = pB ? pB.performanceLevel || '' : ''; }
+      }
+      if (typeof va === 'string') return va.localeCompare(vb) * dataSortDir;
+      return (va < vb ? -1 : va > vb ? 1 : 0) * dataSortDir;
+    });
+  }
+
+  const table = document.getElementById('dataTable');
+  const thead = table.querySelector('thead');
+  const tbody = table.querySelector('tbody');
+  const cols = ['ID','Name','Group','Instructor','Governorate','Attendance %','Avg Score','Grade','Pass Status','Level'];
+  const arrow = (i) => dataSortCol === i ? (dataSortDir > 0 ? ' ▲' : ' ▼') : '';
+  thead.innerHTML = `<tr>${cols.map((c,i) => `<th onclick="sortDataTable(${i})" class="${dataSortCol===i?'sorted':''}">${c}${arrow(i)}</th>`).join('')}</tr>`;
+  tbody.innerHTML = tra.map(t => {
+    const p = perfMap[t.id];
+    const e = examMap[t.id];
+    const attPct = p ? p.attendancePct : null;
+    const score = p ? p.avgScore : null;
+    return `<tr>
+      <td style="color:var(--text3)">${t.id}</td>
+      <td style="font-weight:500">${t.name}</td>
+      <td>${t.group}</td>
+      <td>${t.instructor}</td>
+      <td>${t.governorate}</td>
+      <td>${attPct !== null ? (attPct*100).toFixed(1)+'%' : '-'}</td>
+      <td style="font-weight:600">${score !== null ? (score*100).toFixed(1)+'%' : '-'}</td>
+      <td>${e ? '<span class="badge '+getGradeBadge(e.grade)+'">'+e.grade+'</span>' : '-'}</td>
+      <td>${e ? '<span class="badge '+(e.passStatus==='Pass'?'badge-success':'badge-danger')+'">'+e.passStatus+'</span>' : '-'}</td>
+      <td>${p ? '<span class="badge '+getLevelBadge(p.performanceLevel)+'">'+p.performanceLevel+'</span>' : '-'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('dataCount').textContent = `${tra.length} trainees`;
+}
+
+function sortDataTable(col) {
+  if (dataSortCol === col) dataSortDir *= -1;
+  else { dataSortCol = col; dataSortDir = 1; }
+  renderDataTable();
+}
+
+function getGradeBadge(g) {
+  if (g === 'A') return 'badge-success';
+  if (g === 'B') return 'badge-primary';
+  if (g === 'C') return 'badge-warning';
+  if (g === 'D') return 'badge-info';
+  if (g === 'F') return 'badge-danger';
+  return 'badge-gray';
+}
+function getLevelBadge(l) {
+  if (l === 'Excellent') return 'badge-success';
+  if (l === 'Good') return 'badge-primary';
+  if (l === 'Needs Improvement') return 'badge-warning';
+  if (l === 'At Risk') return 'badge-danger';
+  return 'badge-gray';
+}
+
+// ============================================================
+// TABS
+// ============================================================
+document.getElementById('tabs').addEventListener('click', e => {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
+  document.getElementById('tab-' + tab.dataset.tab).style.display = 'block';
+  // Re-render charts for active tab to get proper sizing
+  setTimeout(() => {
+    Object.values(state.charts).forEach(c => { try { c.resize(); } catch(e) {} });
+  }, 100);
+});
+
+// ============================================================
+// SEARCH
+// ============================================================
+document.getElementById('dataSearch').addEventListener('input', () => onFilterChange());
+
+// ============================================================
+// EXPORT (placeholder)
+// ============================================================
+function exportPDF() {
+  window.print();
+}
+
+// ============================================================
+// INIT - load sample if file is present in URL?
+// ============================================================
+console.log('ITS Campania Dashboard ready. Upload an Excel file to begin.');
+
+</script>
+</body>
+</html>
