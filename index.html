@@ -6,6 +6,8 @@
 <title>ITS Campania - Training Program Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -298,6 +300,21 @@ tr:hover td { background: #eef2ff; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading p { color: var(--text2); font-size: .9rem; }
 
+/* Export overlay */
+.export-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(255,255,255,.9);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1rem;
+  opacity: 0; pointer-events: none;
+  transition: opacity .3s;
+}
+.export-overlay.active { opacity: 1; pointer-events: all; }
+.export-overlay .spinner { width: 48px; height: 48px; border-width: 4px; }
+.export-overlay p { font-size: 1rem; font-weight: 600; color: var(--text); }
+.export-overlay small { color: var(--text3); font-size: .85rem; }
+
 /* Drop zone */
 .drop-zone {
   border: 2px dashed #cbd5e1;
@@ -367,6 +384,26 @@ tr:hover td { background: #eef2ff; }
   .filter-bar { flex-direction: column; align-items: stretch; }
   .filter-count { margin-left: 0; }
 }
+
+/* Print / PDF Export */
+@media print {
+  body { background: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .header { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .drop-zone, .upload-area, #exportBtn, .file-info .btn-danger { display: none !important; }
+  .dashboard-content.show { display: block !important; }
+  .container { max-width: 100%; padding: .5in; }
+  .chart-card, .summary-card, .filter-bar, .table-wrapper, .insight-card { break-inside: avoid; box-shadow: none !important; border: 1px solid #ddd !important; }
+  .tab, [id^="tab-"] { display: block !important; }
+  .tabs { display: none; }
+  #tab-attendance, #tab-exams, #tab-performance, #tab-instructors, #tab-data { display: block !important; page-break-before: always; }
+  .charts-grid, .charts-grid-2col, .insights-grid { break-inside: avoid; }
+  canvas { max-height: 200px !important; }
+  .chart-body { min-height: 180px !important; height: 180px !important; }
+  .chart-card.full .chart-body { min-height: 220px !important; height: 220px !important; }
+  table { font-size: 9px; }
+  th, td { padding: 4px 6px; }
+  .summary-grid { grid-template-columns: repeat(3, 1fr); }
+}
 </style>
 </head>
 <body>
@@ -388,7 +425,7 @@ tr:hover td { background: #eef2ff; }
       <button class="btn btn-primary" id="uploadBtn">📂 Upload Excel</button>
       <input type="file" id="fileInput" accept=".xlsx,.xls">
     </div>
-    <button class="btn btn-outline btn-sm" onclick="exportPDF()">📥 Export</button>
+    <button class="btn btn-outline btn-sm" id="exportBtn" onclick="exportPDF()">📥 Export PDF</button>
   </div>
 </div>
 
@@ -494,6 +531,12 @@ tr:hover td { background: #eef2ff; }
     </div>
 
   </div>
+</div>
+
+<div class="export-overlay" id="exportOverlay">
+  <div class="spinner"></div>
+  <p>Generating your PDF report...</p>
+  <small>Capturing dashboard with full color</small>
 </div>
 
 <script>
@@ -1465,10 +1508,81 @@ document.getElementById('tabs').addEventListener('click', e => {
 document.getElementById('dataSearch').addEventListener('input', () => onFilterChange());
 
 // ============================================================
-// EXPORT (placeholder)
+// EXPORT — Colored PDF via html2canvas + jsPDF
 // ============================================================
 function exportPDF() {
-  window.print();
+  const overlay = document.getElementById('exportOverlay');
+  overlay.classList.add('active');
+
+  const content = document.getElementById('dashboardContent');
+  const tabs = document.querySelectorAll('[id^="tab-"]');
+  const tabBar = document.getElementById('tabs');
+  const tabBtns = document.querySelectorAll('.tab');
+
+  // Temporarily show all tabs for capture, hide tab bar
+  const displays = {};
+  tabs.forEach(t => { displays[t.id] = t.style.display; t.style.display = 'block'; });
+  tabBar.style.display = 'none';
+  tabBtns.forEach(b => b.style.display = 'none');
+
+  // Force charts to render at full size
+  Object.values(state.charts).forEach(c => { try { c.resize(); } catch(e) {} });
+  content.style.maxWidth = '100%';
+
+  setTimeout(async () => {
+    try {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+
+      const canvas = await html2canvas(content, {
+        scale: 2.5,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: content.scrollWidth,
+        height: content.scrollHeight,
+        windowWidth: content.scrollWidth,
+        windowHeight: content.scrollHeight,
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      const imgW = pageW;
+      const imgH = (canvas.height / canvas.width) * imgW;
+
+      if (imgH <= pageH) {
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgW, imgH);
+      } else {
+        let yPos = 0;
+        while (yPos < canvas.height) {
+          const sliceHpx = (pageH / imgH) * canvas.height;
+          const sliceCanvas = document.createElement('canvas');
+          sliceCanvas.width = canvas.width;
+          sliceCanvas.height = Math.min(sliceHpx, canvas.height - yPos);
+          const ctx = sliceCanvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+          ctx.drawImage(canvas, 0, yPos, canvas.width, sliceHpx, 0, 0, canvas.width, sliceHpx);
+          const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.92);
+          if (yPos > 0) pdf.addPage();
+          pdf.addImage(sliceData, 'JPEG', 0, 0, imgW, (sliceHpx / canvas.width) * imgW);
+          yPos += sliceHpx;
+        }
+      }
+
+      pdf.save('ITS_Campania_Dashboard_Report.pdf');
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      window.print();
+    } finally {
+      tabs.forEach(t => { t.style.display = displays[t.id] || 'none'; });
+      tabBar.style.display = '';
+      tabBtns.forEach(b => b.style.display = '');
+      overlay.classList.remove('active');
+    }
+  }, 800);
 }
 
 // ============================================================
