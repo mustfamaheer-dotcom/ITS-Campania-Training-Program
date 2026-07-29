@@ -667,15 +667,17 @@ function parseWorkbook(wb) {
   // Attendance
   const attSheet = wb.Sheets['Attendance'];
   if (attSheet) {
-    const data = XLSX.utils.sheet_to_json(attSheet, { header: 1, defval: '', range: 3 });
-    const headerRow = data[0] || [];
+    const raw = XLSX.utils.sheet_to_json(attSheet, { header: 1, defval: '', range: 2 });
+    const attHeader = raw[0] || [];
+    const attRows = raw.slice(1);
     state.attendance = [];
-    for (let i = 1; i < data.length; i++) {
-      const r = data[i];
+    for (let i = 0; i < attRows.length; i++) {
+      const r = attRows[i];
       if (!r[0]) continue;
       const sessions = {};
       for (let j = 2; j < 47 && j < r.length; j++) {
-        if (headerRow[j]) sessions[headerRow[j]] = String(r[j] || '');
+        const key = (attHeader[j] || '').replace(/\n/g, ' ');
+        if (key) sessions[key] = String(r[j] || '');
       }
       state.attendance.push({
         id: String(r[0]),
@@ -687,8 +689,7 @@ function parseWorkbook(wb) {
         attendancePct: r[50] ? parseFloat(r[50]) || 0 : 0,
       });
     }
-    // Only include sessions that have actual attendance data
-    const allSessionNames = headerRow.slice(2, 47).filter(Boolean);
+    const allSessionNames = attHeader.slice(2, 47).filter(Boolean).map(n => n.replace(/\n/g, ' '));
     state.attendanceSessions = allSessionNames.filter(s =>
       state.attendance.some(a => a.sessions[s] && a.sessions[s] !== '')
     );
@@ -697,17 +698,19 @@ function parseWorkbook(wb) {
   // Exams
   const examsSheet = wb.Sheets['Exams'];
   if (examsSheet) {
-    const data = XLSX.utils.sheet_to_json(examsSheet, { header: 1, defval: '', range: 3 });
-    const headerRow = data[0] || [];
-    state.examNames = headerRow.slice(2, 12).filter(Boolean);
+    const raw = XLSX.utils.sheet_to_json(examsSheet, { header: 1, defval: '', range: 2 });
+    const examsHeader = raw[0] || [];
+    const examsRows = raw.slice(1);
+    state.examNames = examsHeader.slice(2, 12).filter(Boolean).map(n => n.replace(/\n/g, ' '));
     state.exams = [];
-    for (let i = 1; i < data.length; i++) {
-      const r = data[i];
+    for (let i = 0; i < examsRows.length; i++) {
+      const r = examsRows[i];
       if (!r[0]) continue;
       const scores = {};
       for (let j = 2; j < 12 && j < r.length; j++) {
         const val = r[j];
-        scores[headerRow[j]] = val !== '' ? parseFloat(val) : null;
+        const key = (examsHeader[j] || '').replace(/\n/g, ' ');
+        scores[key] = val !== '' ? parseFloat(val) : null;
       }
       state.exams.push({
         id: String(r[0]),
