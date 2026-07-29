@@ -1123,8 +1123,9 @@ function renderExamDetailChart() {
   const dataset = examKeys.map((k, i) => {
     const vals = data.map(e => e.scores[k]).filter(v => v !== null && v !== undefined);
     if (!vals.length) return null;
-    const sum = vals.reduce((a,b) => a+b, 0);
-    return { avg: sum / vals.length, min: Math.min(...vals), max: Math.max(...vals), count: vals.length };
+    const normalized = vals.map(v => v / 10);
+    const sum = normalized.reduce((a,b) => a+b, 0);
+    return { avg: sum / normalized.length, min: Math.min(...normalized), max: Math.max(...normalized), count: normalized.length };
   });
   const ctx = document.getElementById('examDetailChart').getContext('2d');
   state.charts.examDetail = new Chart(ctx, {
